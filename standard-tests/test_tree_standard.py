@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import math
 import pytest
 import random
+import inspect
 from importlib import import_module
 from collections import namedtuple, deque
 from inspect import isgenerator
@@ -33,10 +34,9 @@ Balancing:
     -Set BALANCED = True
 """
 
-
 BALANCED = False
 MODULENAME = 'bst'
-CLASSNAME = 'BinarySearchTree'
+CLASSNAME = 'BinaryTree'
 ROOT_ATTR = 'root'
 VAL_ATTR = 'value'
 LEFT_ATTR = 'left'
@@ -44,7 +44,40 @@ RIGHT_ATTR = 'right'
 PARENT_ATTR = 'parent'
 
 module = import_module(MODULENAME)
-ClassDef = getattr(module, CLASSNAME)
+
+def findmatch(members, common):
+    def find_match(member):
+        for potential in common:
+            if potential in member[0].lower():
+                return True
+        return False
+    return next(filter(find_match, members))
+
+common_names = { # lowercased
+    'tree': ['binarysearchtree', 'binarytree', 'bst', 'tree'],
+    'node': ['node'],
+    'root': ['root'],
+    'value': ['value', 'val', 'data'],
+    'left': ['left'],
+    'right': ['right'],
+    'parent': ['parent']
+}
+
+
+try:
+    classes = inspect.getmembers(module, predicate=inspect.isclass)
+    CLASSNAME, ClassDef = findmatch(classes, common_names['tree'])
+    bst_class_attrs = ClassDef().__dict__.items()
+    ROOT_ATTR = findmatch(bst_class_attrs, common_names['root'])[0]
+
+    NODECLASSNAME, NodeClassDef = findmatch(classes, common_names['node'])
+    node_class_attrs = NodeClassDef(0).__dict__.items()
+    VAL_ATTR = findmatch(node_class_attrs, common_names['value'])[0]
+    LEFT_ATTR = findmatch(node_class_attrs, common_names['left'])[0]
+    RIGHT_ATTR = findmatch(node_class_attrs, common_names['right'])[0]
+    PARENT_ATTR = findmatch(node_class_attrs, common_names['parent'])[0]
+except (StopIteration, Exception):
+    ClassDef = getattr(module, CLASSNAME)
 
 
 REQ_METHODS = [
@@ -137,7 +170,7 @@ def _unbalanced_balance(sequence):
 def _depth(node):
     if node is None:
         return 0
-    return max(_depth(x) for x in (node.left, node.right)) + 1
+    return max(_depth(getattr(node, x)) for x in (LEFT_ATTR, RIGHT_ATTR)) + 1
 
 
 def _in_order(node, return_vals=True):
@@ -218,6 +251,7 @@ def new_tree(request):
             depth = 0
         balance = 0
     else:
+        depth = _unbalanced_depth(sequence)
         depth = _unbalanced_depth_root(sequence)
         balance = _unbalanced_balance(sequence)
 
