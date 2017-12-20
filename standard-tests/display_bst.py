@@ -9,6 +9,7 @@
         display(self)
 
 
+import math
 import curses
 import shutil
 import inspect
